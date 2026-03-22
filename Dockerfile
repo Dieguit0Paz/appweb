@@ -1,33 +1,31 @@
 # Usamos una imagen de Python ligera y estable
 FROM python:3.9-slim
 
-# Evita que Python genere archivos .pyc y asegura que los logs se vean en tiempo real
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Formato correcto de ENV key=value para evitar warnings
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Establecer el directorio de trabajo dentro del contenedor
+# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias para algunas librerías gráficas
+# Instalamos solo lo estrictamente necesario
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el archivo de requerimientos primero (para aprovechar la caché de Docker)
-# Si no tienes un archivo requirements.txt, el comando siguiente lo creará por ti
+# Crear requirements.txt dinámicamente
 RUN echo "streamlit\npandas\nplotly\nrequests" > requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiamos el resto de los archivos (app.py, logos, manual de marca, etc.)
+# Copiamos app.py y el logo (asegúrate de que estén en la misma carpeta)
 COPY . .
 
-# Exponemos el puerto que usa Streamlit por defecto
+# Puerto por defecto de Streamlit
 EXPOSE 8501
 
-# Configuración de Streamlit para que funcione correctamente en entornos de red (como VPS)
+# Comprobación de salud del contenedor
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-# Comando para ejecutar la aplicación
+# Comando de inicio
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
